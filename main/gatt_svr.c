@@ -8,6 +8,14 @@
 #include "services/gatt/ble_svc_gatt.h"
 #include "cyclocomp.h"
 
+
+int iterator = 0;
+
+int return_number() {
+    iterator += 1;
+    return iterator;
+}
+
 /**
  * The vendor specific security test service consists of two characteristics:
  *     o random-number-generator: generates a random 32-bit number each time
@@ -23,13 +31,13 @@ static const ble_uuid128_t gatt_svr_svc_cycl_comp_uuid =
                      0xfa, 0x4e, 0x81, 0xf7, 0x72, 0x2c, 0x17, 0x19);
 
 /* 9bbff0b4-d472-48b3-8ca3-70de95ee4bd7 */
-static const ble_uuid128_t gatt_svr_chr_hall_value_uuid =
+static const ble_uuid128_t gatt_svr_chr_sensor_value_uuid =
     BLE_UUID128_INIT(0xd7, 0x4b, 0xee, 0x95, 0xde, 0x70, 0xa3, 0x8c,
                      0xb3, 0x48, 0x72, 0xd4, 0xb4, 0xf0, 0xbf, 0x9b);
 
 
 static int
-gatt_svr_chr_access_hall_rd(uint16_t conn_handle, uint16_t attr_handle,
+gatt_svr_chr_access_sensor_rd(uint16_t conn_handle, uint16_t attr_handle,
                              struct ble_gatt_access_ctxt *ctxt,
                              void *arg);
 
@@ -40,9 +48,9 @@ static const struct ble_gatt_svc_def gatt_svr_svcs[] = {
         .uuid = &gatt_svr_svc_cycl_comp_uuid.u,
         .characteristics = (struct ble_gatt_chr_def[]){
             {
-                /*** Characteristic: Hall sensor value. */
-                .uuid = &gatt_svr_chr_hall_value_uuid.u,
-                .access_cb = gatt_svr_chr_access_hall_rd,
+                /*** Characteristic: Sensor value. */
+                .uuid = &gatt_svr_chr_sensor_value_uuid.u,
+                .access_cb = gatt_svr_chr_access_sensor_rd,
                 .flags = BLE_GATT_CHR_F_READ
             },
             {
@@ -57,7 +65,7 @@ static const struct ble_gatt_svc_def gatt_svr_svcs[] = {
 
 
 static int
-gatt_svr_chr_access_hall_rd(uint16_t conn_handle, uint16_t attr_handle,
+gatt_svr_chr_access_sensor_rd(uint16_t conn_handle, uint16_t attr_handle,
                              struct ble_gatt_access_ctxt *ctxt,
                              void *arg)
 {
@@ -71,10 +79,10 @@ gatt_svr_chr_access_hall_rd(uint16_t conn_handle, uint16_t attr_handle,
      * 128-bit UUID.
      */
 
-    if (ble_uuid_cmp(uuid, &gatt_svr_chr_hall_value_uuid.u) == 0) {
+    if (ble_uuid_cmp(uuid, &gatt_svr_chr_sensor_value_uuid.u) == 0) {
         assert(ctxt->op == BLE_GATT_ACCESS_OP_READ_CHR);
 
-        num = 256;
+        num = return_number();
         rc = os_mbuf_append(ctxt->om, &num, sizeof num);
         return rc == 0 ? 0 : BLE_ATT_ERR_INSUFFICIENT_RES;
     }

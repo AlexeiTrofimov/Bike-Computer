@@ -1,6 +1,7 @@
 set(srcs "main.c"
         "gatt_svr.c"
         "misc.c"
+        "sensortools.c"
        )
 
 idf_component_register(SRCS "${srcs}"
