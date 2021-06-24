@@ -11,6 +11,8 @@ extern "C" {
 struct ble_hs_cfg;
 struct ble_gatt_register_ctxt;
 
+float speedValue;
+
 /** GATT server. */
 #define GATT_SVR_SVC_ALERT_UUID               0x1811
 #define GATT_SVR_CHR_SUP_NEW_ALERT_CAT_UUID   0x2A47
@@ -21,10 +23,14 @@ struct ble_gatt_register_ctxt;
 
 void gatt_svr_register_cb(struct ble_gatt_register_ctxt *ctxt, void *arg);
 int gatt_svr_init(void);
+void notifyChange();
 
 /** Misc. */
 void print_bytes(const uint8_t *bytes, int len);
 void print_addr(const void *addr);
+
+/** Sensor reading tools */
+void read_data(void);
 
 #ifdef __cplusplus
 }

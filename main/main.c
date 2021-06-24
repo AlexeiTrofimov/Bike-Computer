@@ -298,6 +298,6 @@ app_main(void)
     assert(rc == 0);
 
     ble_store_config_init();
-
+    read_data();
     nimble_port_freertos_init(cyclocomp_host_task);
 }

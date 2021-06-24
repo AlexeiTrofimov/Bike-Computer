@@ -4,13 +4,14 @@
 #include "driver/gpio.h"
 #include "freertos/queue.h"
 #include "driver/timer.h"
+#include "cyclocomp.h"
 
 
 const float radius = 0.6;
 const float pi = 3.141593;
 
 
-static void example_tg_timer_init(int group, int timer, int timer_interval)
+static void interval_timer_init(int group, int timer, int timer_interval)
 {
     /* Select and initialize basic parameters of the timer */
     timer_config_t config = {
@@ -41,9 +42,10 @@ void calc_speed(){
         printf("time passed: %f s\n", time);
         float rps = 1/(time);
         printf("RPS: %f\n", rps);
-        float speed = 2*pi*radius*rps;
-        printf("Speed: %f m/s\n", speed);
+        speedValue = 2*pi*radius*rps;
+        printf("Speed: %f m/s\n", speedValue);
     }
+    notifyChange();
     timer_set_counter_value(TIMER_GROUP_0, TIMER_0, 0);
     timer_start(TIMER_GROUP_0, TIMER_0);
 
@@ -91,8 +93,5 @@ void read_data(void) {
     //hook isr handler for specific gpio pin
     gpio_isr_handler_add(17, gpio_isr_handler, (void*) 17);
 
-    example_tg_timer_init(TIMER_GROUP_0, TIMER_0, 100);
-	while (true){
-		vTaskDelay(400 / portTICK_RATE_MS);
-	}
+    interval_timer_init(TIMER_GROUP_0, TIMER_0, 100);
 }
