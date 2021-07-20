@@ -7,7 +7,6 @@
 #include "cyclocomp.h"
 
 
-const float radius = 0.6;
 const float pi = 3.141593;
 
 
@@ -31,21 +30,25 @@ static void interval_timer_init(int group, int timer, int timer_interval)
 
 
 void calc_speed(){
+	if (wheel_circumference != 0){
+        double time = 0;
+        timer_get_counter_time_sec(0, 0, &time);
 
-	double time = 0;
-    timer_get_counter_time_sec(0, 0, &time);
+        if (time < 0.0001){
+            return;
+        }
+        else{
+            printf("circumference: %f m\n", wheel_circumference);
+            printf("time passed: %f s\n", time);
+            float rps = 1/(time);
+            printf("RPS: %f\n", rps);
+            speedValue = pi*wheel_circumference*rps*3.6;
+            printf("Speed: %f km/h\n", speedValue);
+            notify_change();
+        }
+    }
     
-    if (time < 0.0001){
-        return;
-    }
-    else{
-        printf("time passed: %f s\n", time);
-        float rps = 1/(time);
-        printf("RPS: %f\n", rps);
-        speedValue = 2*pi*radius*rps;
-        printf("Speed: %f m/s\n", speedValue);
-    }
-    notifyChange();
+    
     timer_set_counter_value(TIMER_GROUP_0, TIMER_0, 0);
     timer_start(TIMER_GROUP_0, TIMER_0);
 
@@ -84,7 +87,7 @@ void read_data(void) {
     io_conf.pull_up_en = 1;
     gpio_config(&io_conf);
 
-		gpio_evt_queue = xQueueCreate(10, sizeof(uint32_t));
+    gpio_evt_queue = xQueueCreate(10, sizeof(uint32_t));
     //start gpio task
     xTaskCreate(gpio_interrupt, "gpio_interrupt", 2048, NULL, 10, NULL);
 

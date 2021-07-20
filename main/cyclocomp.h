@@ -12,6 +12,7 @@ struct ble_hs_cfg;
 struct ble_gatt_register_ctxt;
 
 float speedValue;
+float wheel_circumference;
 
 /** GATT server. */
 #define GATT_SVR_SVC_ALERT_UUID               0x1811
@@ -23,7 +24,7 @@ float speedValue;
 
 void gatt_svr_register_cb(struct ble_gatt_register_ctxt *ctxt, void *arg);
 int gatt_svr_init(void);
-void notifyChange();
+void notify_change();
 
 /** Misc. */
 void print_bytes(const uint8_t *bytes, int len);

@@ -11,15 +11,6 @@
 
 uint16_t char_val = 0;
 
-/**
- * The vendor specific security test service consists of two characteristics:
- *     o random-number-generator: generates a random 32-bit number each time
- *       it is read.  This characteristic can only be read over an encrypted
- *       connection.
- *     o static-value: a single-byte characteristic that can always be read,
- *       but can only be written over an encrypted connection.
- */
-
 /* 19172c72-f781-4efa-a5ab-5158872be9c8 */
 static const ble_uuid128_t gatt_svr_svc_cycl_comp_uuid =
     BLE_UUID128_INIT(0xc8, 0xe9, 0x2b, 0x87, 0x58, 0x51, 0xab, 0xa5,
@@ -30,6 +21,10 @@ static const ble_uuid128_t gatt_svr_chr_sensor_value_uuid =
     BLE_UUID128_INIT(0xd7, 0x4b, 0xee, 0x95, 0xde, 0x70, 0xa3, 0x8c,
                      0xb3, 0x48, 0x72, 0xd4, 0xb4, 0xf0, 0xbf, 0x9b);
 
+/* 9bbff0b4-d472-48b3-8ca3-70de95ee4bd8 */
+static const ble_uuid128_t gatt_svr_chr_write_value_uuid =
+    BLE_UUID128_INIT(0xd8, 0x4b, 0xee, 0x95, 0xde, 0x70, 0xa3, 0x8c,
+                     0xb3, 0x48, 0x72, 0xd4, 0xb4, 0xf0, 0xbf, 0x9b);
 
 static int
 gatt_svr_chr_access_sensor_rd(uint16_t conn_handle, uint16_t attr_handle,
@@ -42,6 +37,12 @@ static const struct ble_gatt_svc_def gatt_svr_svcs[] = {
         .type = BLE_GATT_SVC_TYPE_PRIMARY,
         .uuid = &gatt_svr_svc_cycl_comp_uuid.u,
         .characteristics = (struct ble_gatt_chr_def[]){
+            {
+                /*** Characteristic: Recieve bike specs */
+                .uuid = &gatt_svr_chr_write_value_uuid.u,
+                .access_cb = gatt_svr_chr_access_sensor_rd,
+                .flags = BLE_GATT_CHR_F_WRITE
+            },
             {
                 /*** Characteristic: Sensor value. */
                 .uuid = &gatt_svr_chr_sensor_value_uuid.u,
@@ -58,6 +59,26 @@ static const struct ble_gatt_svc_def gatt_svr_svcs[] = {
     },
 };
 
+static int
+gatt_svr_chr_write(struct os_mbuf *om, uint16_t min_len, uint16_t max_len,
+                   void *dst, uint16_t *len)
+{
+    uint16_t om_len;
+    int rc;
+
+    om_len = OS_MBUF_PKTLEN(om);
+
+    if (om_len < min_len || om_len > max_len) {
+        return BLE_ATT_ERR_INVALID_ATTR_VALUE_LEN;
+    }
+
+    rc = ble_hs_mbuf_to_flat(om, dst, max_len, len);
+    if (rc != 0) {
+        return BLE_ATT_ERR_UNLIKELY;
+    }
+
+    return 0;
+}
 
 static int
 gatt_svr_chr_access_sensor_rd(uint16_t conn_handle, uint16_t attr_handle,
@@ -78,8 +99,17 @@ gatt_svr_chr_access_sensor_rd(uint16_t conn_handle, uint16_t attr_handle,
         assert(ctxt->op == BLE_GATT_ACCESS_OP_READ_CHR);
 
         num = speedValue;
+        
         rc = os_mbuf_append(ctxt->om, &num, sizeof num);
         return rc == 0 ? 0 : BLE_ATT_ERR_INSUFFICIENT_RES;
+    }
+
+    if (ble_uuid_cmp(uuid, &gatt_svr_chr_write_value_uuid.u) == 0) {
+        rc = gatt_svr_chr_write(ctxt->om,
+                            sizeof wheel_circumference,
+                            sizeof wheel_circumference,
+                            &wheel_circumference, NULL);
+    return rc;
     }
 
     /* Unknown characteristic; the nimble stack should not have called this
@@ -122,7 +152,7 @@ gatt_svr_register_cb(struct ble_gatt_register_ctxt *ctxt, void *arg)
     }
 }
 
-void notifyChange(){
+void notify_change(){
     ble_gatts_chr_updated(char_val);
 }
 
