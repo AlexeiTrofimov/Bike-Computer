@@ -8,23 +8,44 @@
 
 
 const float pi = 3.141593;
+const int interrupt_time = 15;
+
+static xQueueHandle evt_queue = NULL;
 
 
-static void interval_timer_init(int group, int timer, int timer_interval)
+static bool IRAM_ATTR timer_group_isr_callback(void *args)
+{
+    BaseType_t high_task_awoken = pdFALSE;
+    uint8_t itemPtr;
+    xQueueSendFromISR(evt_queue, &itemPtr, &high_task_awoken);
+    return high_task_awoken == pdTRUE;
+}
+
+
+static void interval_timer_init(int group, int timer, bool interrupt, int timer_interval)
 {
     /* Select and initialize basic parameters of the timer */
     timer_config_t config = {
         .divider = 16,
         .counter_dir = TIMER_COUNT_UP,
         .counter_en = TIMER_PAUSE,
-        .auto_reload = false,
+        .alarm_en = interrupt ? TIMER_ALARM_EN : TIMER_ALARM_DIS,
+        .auto_reload = interrupt,
     };
     
     timer_init(group, timer, &config);
 
     /* Timer's counter will initially start from value below. */
     timer_set_counter_value(group, timer, 0);
+    
+    if (interrupt){
+        timer_set_alarm_value(group, timer, timer_interval*(TIMER_BASE_CLK/16));
+    
+        timer_enable_intr(group, timer);
 
+        timer_isr_callback_add(group, timer, timer_group_isr_callback, NULL, 0);
+    }
+    
     timer_start(group, timer);
 }
 
@@ -34,15 +55,19 @@ void calc_speed(){
         double time = 0;
         timer_get_counter_time_sec(0, 0, &time);
 
-        if (time < 0.0001){
+        if (time < 0.0001F){  //prevents double readings
             return;
+        }
+        if (time >= interrupt_time){
+            speedValue = 0;
+            notify_change();
         }
         else{
             printf("circumference: %f m\n", wheel_circumference);
             printf("time passed: %f s\n", time);
             float rps = 1/(time);
             printf("RPS: %f\n", rps);
-            speedValue = pi*wheel_circumference*rps*3.6;
+            speedValue = pi*wheel_circumference*rps*3.6F;
             printf("Speed: %f km/h\n", speedValue);
             notify_change();
         }
@@ -52,26 +77,26 @@ void calc_speed(){
     timer_set_counter_value(TIMER_GROUP_0, TIMER_0, 0);
     timer_start(TIMER_GROUP_0, TIMER_0);
 
-}
+    timer_set_counter_value(TIMER_GROUP_0, TIMER_1, 0);
+    timer_start(TIMER_GROUP_0, TIMER_1);
 
-static xQueueHandle gpio_evt_queue = NULL;
+}
 
 static void IRAM_ATTR gpio_isr_handler(void* arg)
 {
     uint32_t gpio_num = (uint32_t) arg;
-    xQueueSendFromISR(gpio_evt_queue, &gpio_num, NULL);
+    xQueueSendFromISR(evt_queue, &gpio_num, NULL);
 }
 
 static void gpio_interrupt(void* arg)
 {
     uint32_t io_num;
     for(;;) {
-        if(xQueueReceive(gpio_evt_queue, &io_num, portMAX_DELAY)) {
+        if(xQueueReceive(evt_queue, &io_num, portMAX_DELAY)) {
             calc_speed();
         }
     }
 }
-
 
 void read_data(void) {
 
@@ -87,7 +112,7 @@ void read_data(void) {
     io_conf.pull_up_en = 1;
     gpio_config(&io_conf);
 
-    gpio_evt_queue = xQueueCreate(10, sizeof(uint32_t));
+    evt_queue = xQueueCreate(10, sizeof(uint32_t));
     //start gpio task
     xTaskCreate(gpio_interrupt, "gpio_interrupt", 2048, NULL, 10, NULL);
 
@@ -96,5 +121,7 @@ void read_data(void) {
     //hook isr handler for specific gpio pin
     gpio_isr_handler_add(17, gpio_isr_handler, (void*) 17);
 
-    interval_timer_init(TIMER_GROUP_0, TIMER_0, 100);
+    interval_timer_init(TIMER_GROUP_0, TIMER_0,false, 100);
+
+    interval_timer_init(TIMER_GROUP_0, TIMER_1,true, interrupt_time);
 }
