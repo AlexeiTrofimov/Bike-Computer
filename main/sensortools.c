@@ -51,7 +51,7 @@ static void interval_timer_init(int group, int timer, bool interrupt, int timer_
 
 
 void calc_speed(){
-	if (wheel_circumference != 0){
+	if (wheel_diameter != 0){
         double time = 0;
         timer_get_counter_time_sec(0, 0, &time);
 
@@ -63,11 +63,11 @@ void calc_speed(){
             notify_change();
         }
         else{
-            printf("circumference: %f m\n", wheel_circumference);
+            printf("circumference: %f m\n", wheel_diameter);
             printf("time passed: %f s\n", time);
             float rps = 1/(time);
             printf("RPS: %f\n", rps);
-            speedValue = pi*wheel_circumference*rps*3.6F;
+            speedValue = pi*wheel_diameter*rps*3.6F;
             printf("Speed: %f km/h\n", speedValue);
             notify_change();
         }

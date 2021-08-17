@@ -296,7 +296,7 @@ app_main(void)
     /* Set the default device name. */
     rc = ble_svc_gap_device_name_set("cyclo-computer");
     assert(rc == 0);
-    wheel_circumference = 0;
+    wheel_diameter = 0;
 
     ble_store_config_init();
     read_data();

@@ -106,9 +106,9 @@ gatt_svr_chr_access_sensor_rd(uint16_t conn_handle, uint16_t attr_handle,
 
     if (ble_uuid_cmp(uuid, &gatt_svr_chr_write_value_uuid.u) == 0) {
         rc = gatt_svr_chr_write(ctxt->om,
-                            sizeof wheel_circumference,
-                            sizeof wheel_circumference,
-                            &wheel_circumference, NULL);
+                            sizeof wheel_diameter,
+                            sizeof wheel_diameter,
+                            &wheel_diameter, NULL);
     return rc;
     }
 
